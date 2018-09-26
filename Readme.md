@@ -13,7 +13,7 @@ defer dd.Close()
 client.Write([]byte("some log"))
 ```
 
-- Implements `apex/log.Handler`
+- Implements `github.com/apex/log.Handler`
 
 ```go
 key := os.Getenv("DATADOG_API_KEY")
