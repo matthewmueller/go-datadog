@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/apex/log"
-	"github.com/matthewmueller/datadog"
+	"github.com/matthewmueller/go-datadog"
 )
 
 func TestEnv(t *testing.T) {
