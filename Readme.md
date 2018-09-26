@@ -1,6 +1,4 @@
-# Datadog Logger
-
-Easily send structured logs to Datadog over TCP.
+Easily send structured logs to [Datadog](https://www.datadoghq.com/) over TCP.
 
 ## Features
 
