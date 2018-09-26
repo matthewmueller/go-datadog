@@ -1,5 +1,7 @@
 Easily send structured logs to [Datadog](https://www.datadoghq.com/) over TCP.
 
+[![GoDoc](https://godoc.org/github.com/matthewmueller/go-datadog?status.svg)](https://godoc.org/github.com/matthewmueller/go-datadog)
+
 ## Features
 
 - Implements `io.Writer`
