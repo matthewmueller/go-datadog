@@ -7,8 +7,9 @@ import (
 	"io"
 	"net"
 	"os"
-	"sync"
 	"time"
+
+	"github.com/matthewmueller/go-datadog/internal/queue"
 
 	"github.com/apex/log"
 )
@@ -44,13 +45,10 @@ func Dial(cfg *Config) (*Datadog, error) {
 	})
 
 	d := &Datadog{
-		Config:      cfg,
-		Conn:        sslConn,
-		Queue:       make(chan *log.Entry, 100),
-		ErrorWriter: os.Stderr,
+		Config: cfg,
+		Conn:   sslConn,
+		Queue:  queue.New(100, 1),
 	}
-
-	go d.worker()
 
 	return d, nil
 }
@@ -60,36 +58,24 @@ type Datadog struct {
 	Config *Config
 
 	Conn  net.Conn
-	Queue chan *log.Entry
-
-	// Write errors here
-	ErrorWriter io.Writer
-
-	wg sync.WaitGroup
+	Queue *queue.Queue
 }
 
 var _ io.WriteCloser = (*Datadog)(nil)
 var _ log.Handler = (*Datadog)(nil)
 
 // HandleLog implements log.Handler
+//
 // Doesn't start blocking until the channel is full
+// If the queue is closed, this function returns
+// and error immediately
 func (d *Datadog) HandleLog(l *log.Entry) error {
-	select {
-	case d.Queue <- l:
-		d.wg.Add(1)
-	default:
-	}
-	return nil
+	return d.Queue.Push(func() { d.send(l) })
 }
 
-func (d *Datadog) worker() {
-	for entry := range d.Queue {
-		d.send(entry)
-		d.wg.Done()
-	}
-}
-
-func (d *Datadog) send(e *log.Entry) {
+// Send the entry to datadog
+// TODO: any better way to handle errors here?
+func (d *Datadog) send(e *log.Entry) error {
 	entry := map[string]interface{}{}
 
 	entry["host"] = d.Config.Host
@@ -106,14 +92,16 @@ func (d *Datadog) send(e *log.Entry) {
 
 	buf, err := json.Marshal(entry)
 	if err != nil {
-		d.ErrorWriter.Write([]byte(err.Error()))
-		return
+		os.Stderr.Write([]byte(err.Error()))
+		return err
 	}
 
 	if _, err := d.Write(buf); err != nil {
-		d.ErrorWriter.Write([]byte(err.Error()))
-		return
+		os.Stderr.Write([]byte(err.Error()))
+		return err
 	}
+
+	return nil
 }
 
 // Write to the tcp connection
@@ -128,10 +116,10 @@ func (d *Datadog) Write(b []byte) (int, error) {
 
 // Close the datadog connection
 func (d *Datadog) Close() error {
-	// don't accept any more
-	close(d.Queue)
-	// drain the queue
-	d.wg.Wait()
-	// close the connection
+	// ignore any new logs that come in
+	// process the logs that we have
+	d.Queue.Close()
+
+	// close the TCP connection
 	return d.Conn.Close()
 }

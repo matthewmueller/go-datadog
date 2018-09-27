@@ -2,6 +2,8 @@
 package datadog_test
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"testing"
 
@@ -65,4 +67,27 @@ func TestApex(t *testing.T) {
 
 	log.WithField("some", "error").Error("error")
 	log.WithField("some", "warning").Warn("warning")
+}
+
+func TestApexCloseEarly(t *testing.T) {
+	var stderr bytes.Buffer
+
+	key := os.Getenv("DATADOG_API_KEY")
+	dd, err := datadog.Dial(&datadog.Config{APIKey: key})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log := log.Logger{
+		Level:   log.InfoLevel,
+		Handler: dd,
+	}
+
+	log.WithField("some", "error").Error("error")
+	log.WithField("some", "warning").Warn("warning")
+	dd.Close()
+	log.WithField("some", "info").Info("info")
+
+	fmt.Println(stderr.String())
+	// if stderr.String() !=
 }
