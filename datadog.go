@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -95,7 +96,7 @@ func (d *Datadog) send(e *log.Entry) error {
 		os.Stderr.Write([]byte(err.Error()))
 		return err
 	}
-
+	fmt.Println("sending", string(buf))
 	if _, err := d.Write(buf); err != nil {
 		os.Stderr.Write([]byte(err.Error()))
 		return err

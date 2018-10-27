@@ -49,16 +49,18 @@ func worker(wg *sync.WaitGroup, jobs chan func()) {
 // when ready. This will never block but it
 // may drop functions if we're at capacity.
 func (g *Queue) Push(fn func()) error {
+	g.wg.Add(1)
+
 	// handle closed, there may be pushes
 	// that are passed this check. Let them
 	// be processed
 	select {
 	case <-g.closed:
+		g.wg.Done()
 		return ErrQueueClosed
 	default:
 	}
 
-	g.wg.Add(1)
 	g.jobs <- fn
 	return nil
 }
