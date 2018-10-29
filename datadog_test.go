@@ -50,6 +50,27 @@ func TestWrite(t *testing.T) {
 	}
 }
 
+func TestMultilineWrite(t *testing.T) {
+	key := os.Getenv("DATADOG_API_KEY")
+	dd, err := datadog.Dial(&datadog.Config{
+		APIKey: key,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dd.Close()
+
+	msg := `me
+	too
+	too`
+	n, err := dd.Write([]byte(msg))
+	if err != nil {
+		t.Fatal(err)
+	} else if len(msg) != n {
+		t.Fatal("length mismatch")
+	}
+}
+
 func TestApex(t *testing.T) {
 	key := os.Getenv("DATADOG_API_KEY")
 	dd, err := datadog.Dial(&datadog.Config{
